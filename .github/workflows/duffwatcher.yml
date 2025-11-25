@@ -2,28 +2,43 @@ name: Duff Watcher
 
 on:
   schedule:
-    - cron: "*/2 * * * *"     # runs every 2 minutes
-  workflow_dispatch:          # allows manual run
+    - cron: "*/15 * * * *"   # Every 15 minutes
+  workflow_dispatch:
 
 jobs:
-  run-bot:
+  run_watcher:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # <-- Required for committing seen.json
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
 
-    - name: Install dependencies
-      run: |
-        pip install feedparser requests
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install feedparser requests
 
-    - name: Run watcher
-      env:
-        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      run: python main.py
+      - name: Run python main.py
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
+
+      - name: Commit seen.json if changed
+        run: |
+          if [[ -n "$(git status --porcelain seen.json)" ]]; then
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add seen.json
+              git commit -m "Update seen.json"
+              git push
+          else
+              echo "No changes to commit"
+          fi
