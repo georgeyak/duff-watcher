@@ -5,7 +5,7 @@ import feedparser
 import os
 
 REDDIT_FEED = "https://www.reddit.com/r/TorontoTickets/new/.rss"
-KEYWORDS = ["hilary", "duff", "hilary duff"]
+KEYWORDS = ["hilary", "hillary", "duff", "hilary duff"]
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
