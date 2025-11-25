@@ -3,13 +3,11 @@ import requests
 import feedparser
 import os
 
-# Watch both subreddits
 FEEDS = [
     "https://www.reddit.com/r/TorontoTickets/new/.rss",
     "https://www.reddit.com/r/gtamarketplace/new/.rss",
 ]
 
-# Match either spelling; you can trim this if you want stricter matches
 KEYWORDS = ["hilary", "hillary", "duff", "hilary duff", "hillary duff"]
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -42,18 +40,17 @@ def title_matches(title: str) -> bool:
     return any(k in t for k in KEYWORDS)
 
 def subreddit_from_entry(entry) -> str:
-    # Try to infer subreddit (most reliable from the link)
     link = getattr(entry, "link", "") or ""
-    # e.g., https://www.reddit.com/r/gtamarketplace/comments/xxxx/...
     try:
-        parts = link.split("/r/")[1].split("/")[0]
-        return parts
+        return link.split("/r/")[1].split("/")[0]
     except Exception:
         return "unknown"
 
 def check_feeds():
     seen = load_seen()
-    new_seen = False
+    before = len(seen)          # track original size
+    any_sent = False
+
     for feed_url in FEEDS:
         feed = feedparser.parse(feed_url)
         for e in feed.entries:
@@ -74,13 +71,15 @@ def check_feeds():
                 )
                 send_telegram(msg)
                 print(f"[sent] r/{sub} :: {title}")
-                new_seen = True
+                any_sent = True
 
-            # mark as seen regardless, so we don't reprocess this ID
+            # mark as seen whether or not it matched
             seen.add(eid)
 
-    if new_seen:
+    # ✅ Persist if anything new was processed (even with no matches)
+    if len(seen) != before or any_sent:
         save_seen(seen)
+        print(f"[info] saved seen.json (total {len(seen)})")
 
 if __name__ == "__main__":
     check_feeds()
